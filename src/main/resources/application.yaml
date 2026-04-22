@@ -43,8 +43,8 @@ spring:
     show-sql: true
 
 server:
+  forward-headers-strategy: framework
   port: ${SERVER_PORT}
-
 
 logging:
   level:
@@ -57,3 +57,11 @@ management:
     web:
       exposure:
         include: health,info
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    config-url: /api/v1/furniro/order-service/v3/api-docs/swagger-config
+    url: /api/v1/furniro/order-service/v3/api-docs
+    disable-swagger-default-url: true

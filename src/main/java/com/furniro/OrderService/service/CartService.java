@@ -32,7 +32,6 @@ public class CartService {
 
     @Transactional
     public ResponseEntity<AType> addToCart(AddToCartReq req) {
-        System.out.println(req);
 
         // 1. Find cart (ưu tiên cartID nếu có)
         Cart cart = cartRepository.findByCartIDAndUserID(req.getCartID(), req.getUserID())

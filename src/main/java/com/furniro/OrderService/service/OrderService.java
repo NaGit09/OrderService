@@ -74,10 +74,10 @@ public class OrderService {
     // change order status
     public ResponseEntity<AType> changeStatusOrder(UpdateStatusOrder updateStatusOrder) {
 
-        Order order = orderRepository.findById(updateStatusOrder.getOrderId()).orElseThrow(
+        Order order = orderRepository.findById(updateStatusOrder.getOrderID()).orElseThrow(
                 () -> new OrderException(OrderErrorCode.ORDER_NOT_EXIST));
 
-        order.setStatus(updateStatusOrder.getOrderStatus());
+        order.setStatus(updateStatusOrder.getStatus());
 
         orderRepository.save(order);
 
