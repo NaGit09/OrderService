@@ -7,22 +7,22 @@ Welcome to the **Order Service**, a robust and scalable microservice designed to
 ## 🚀 Overview
 
 The Order Service is built with a modern, high-performance architecture to ensure seamless transaction handling. It serves as the backbone for:
-- 🛒 **Cart Management**: Real-time shopping cart operations storage.
+- 🛒 **Cart Management**: Real-time shopping cart operations and storage.
 - 📦 **Order Lifecycle**: From creation to fulfillment tracking.
-- 💳 **Payment Orchestration**: Initial hooks for secure payment processing.
-- 📬 **Event-Driven Messaging**: Leveraging Kafka for reliable inter-service communication.
+- 💳 **Payment Orchestration**: Integration with secure payment gateways like **PayPal**.
+- 📬 **Event-Driven Messaging**: Leveraging **Kafka** for reliable inter-service communication.
 
 ---
 
 ## 🛠 Tech Stack
 
-- **Core**: Java 17, Spring Boot 4.0.5 (Project Version)
-- **Database**: MySQL (relational storage for orders & user data)
-- **Messaging**: Apache Kafka (asynchronous events)
-- **Caching & Sessions**: Redis (high-speed cart & session management)
+- **Core**: Java 17, Spring Boot
+- **Database**: MySQL (Order & Payment records)
+- **Messaging**: Apache Kafka (Asynchronous events)
+- **Caching**: Redis (Cart management)
+- **Payments**: PayPal API Integration
 - **Documentation**: Springdoc OpenAPI / Swagger UI
-- **AI Integration**: Spring AI (BOM 2.0.0-M4)
-- **Utilities**: Lombok, Dotenv, Hibernate JPA
+- **AI Integration**: Spring AI
 
 ---
 
@@ -30,13 +30,13 @@ The Order Service is built with a modern, high-performance architecture to ensur
 
 ```text
 src/main/java/com/furniro/OrderService/
-├── config/      # Application & Security configurations
-├── controller/  # REST API Resources
+├── config/      # Application, PayPal & Security configurations
+├── controller/  # REST API Resources (Order, Cart, PayPal)
 ├── database/    # Entities & JPA Repositories
-├── dto/         # Data Transfer Objects
+├── dto/         # Data Transfer Objects (Requests & Responses)
 ├── exception/   # Global Exception Handling
-├── service/     # Business Logic (Cart, Order, Payment)
-└── utils/       # Shared Utilities
+├── service/     # Business Logic (Cart, Order, PayPal integration)
+└── utils/       # Shared Utilities & Enums
 ```
 
 ---
@@ -60,7 +60,21 @@ KAFKA_CONSUMER_GROUP_ID=order-service-group
 # REDIS
 REDIS_HOST=localhost
 REDIS_PORT=6379
+
+# PAYPAL
+PAYPAL_CLIENT_ID=your_paypal_client_id
+PAYPAL_CLIENT_SECRET=your_paypal_client_secret
+PAYPAL_MODE=sandbox
 ```
+
+---
+
+## 💳 PayPal Integration Flow
+
+The Order Service implements a standard PayPal Checkout flow:
+1. **Create Order**: Client calls `/api/v1/orders` with `PAYPAL` method. Backend creates a local order and a PayPal order, returning the approval link.
+2. **User Approval**: User approves the payment on the PayPal portal.
+3. **Capture Payment**: Client calls `/api/v1/orders/capture-paypal` with the PayPal order ID. Backend captures the funds and updates the order status to `COMPLETED`.
 
 ---
 
@@ -69,7 +83,7 @@ REDIS_PORT=6379
 ### Prerequisites
 - **JDK 17+**
 - **Maven**
-- **Docker** (Recommended for infra dependencies)
+- **Docker** (Recommended for MySQL, Kafka, and Redis)
 
 ### Local Development
 
@@ -80,35 +94,24 @@ REDIS_PORT=6379
    ```
 
 2. **Set up Infrastructure**:
-   Ensure MySQL, Kafka, and Redis are running. You can use a `docker-compose.yml` if available or run them locally.
+   Ensure MySQL, Kafka, and Redis are running.
 
 3. **Install Dependencies**:
    ```bash
-   ./mvnw clean install
+   mvn clean install
    ```
 
 4. **Run the Service**:
    ```bash
-   ./mvnw spring-boot:run
+   mvn spring-boot:run
    ```
 
 ---
 
 ## 📖 API Documentation
 
-The project includes integrated Swagger documentation. Once the server is running, explore the API endpoints at:
+Explore the API endpoints once the server is running:
 📌 [Swagger UI](http://localhost:8082/swagger-ui/index.html)
-
----
-
-## 🐳 Docker Deployment
-
-To build and run the service via Docker:
-
-```bash
-docker build -t order-service .
-docker run -p 8082:8082 order-service
-```
 
 ---
 

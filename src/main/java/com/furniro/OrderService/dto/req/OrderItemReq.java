@@ -1,10 +1,12 @@
 package com.furniro.OrderService.dto.req;
 
+import java.math.BigDecimal;
+
 import lombok.Data;
 
 @Data
 public class OrderItemReq {
-    private Integer productVariantID;
+    private Integer variantID;
     private Integer quantity;
-    private Integer price;
+    private BigDecimal price;
 }

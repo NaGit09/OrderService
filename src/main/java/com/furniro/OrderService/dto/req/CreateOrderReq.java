@@ -11,9 +11,9 @@ import com.furniro.OrderService.utils.enums.PaymentStatus;
 
 @Data
 public class CreateOrderReq {
-
+    private Integer userID;
     private double totalAmount;
-    private String orderNote;
+    private String note;
     private int shippingFee;
     private OrderStatus orderStatus;
     private String address;

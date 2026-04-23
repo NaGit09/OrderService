@@ -1,5 +1,7 @@
 package com.furniro.OrderService.database.entity.order;
 
+import java.math.BigDecimal;
+
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -25,5 +27,5 @@ public class OrderItem {
     private Integer quantity;
 
     // Price after sale
-    private Integer priceAtPurchase;
+    private BigDecimal priceAtPurchase;
 }

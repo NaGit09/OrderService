@@ -6,5 +6,5 @@ import lombok.Data;
 public class RemoveCartItemReq {
     private int cartID;
     private int userID;
-    private int productID;
+    private int variantID;
 }

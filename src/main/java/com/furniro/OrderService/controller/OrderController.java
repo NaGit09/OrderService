@@ -24,4 +24,9 @@ public class OrderController {
     public ResponseEntity<AType> changeStatusOrder(@RequestBody UpdateStatusOrder updateStatusOrder) {
         return orderService.changeStatusOrder(updateStatusOrder);
     }
+
+    @PostMapping("/capture-paypal")
+    public ResponseEntity<AType> capturePayPalOrder(@RequestParam String orderId) {
+        return orderService.capturePayPalOrder(orderId);
+    }
 }

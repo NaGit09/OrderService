@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -32,10 +33,12 @@ public class Order {
     @Builder.Default
     private OrderStatus status = OrderStatus.PENDING;
 
-    private Integer totalAmount;
-
     @Builder.Default
-    private Integer shippingFee = 0;
+    private String currency = "USD";
+
+    private BigDecimal totalAmount;
+
+    private BigDecimal shippingFee;
 
     @Column(columnDefinition = "TEXT")
     private String orderNote;
