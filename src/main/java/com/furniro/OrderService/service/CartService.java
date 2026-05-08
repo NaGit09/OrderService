@@ -16,7 +16,7 @@ import com.furniro.OrderService.dto.req.RemoveCartItemReq;
 import com.furniro.OrderService.dto.req.UpdateCartReq;
 import com.furniro.OrderService.exception.CartException;
 import com.furniro.OrderService.utils.CartUtil;
-import com.furniro.OrderService.utils.enums.CartErrorCode;
+import com.furniro.OrderService.utils.error.CartErrorCode;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -56,11 +56,7 @@ public class CartService {
 
         cartItemRepository.save(cartItem);
 
-        return ResponseEntity.ok(ApiType.builder()
-                .code(200)
-                .message("Add to cart successfully")
-                .data(true)
-                .build());
+        return ResponseEntity.ok(ApiType.success(true));
     }
 
     @Transactional
@@ -74,12 +70,7 @@ public class CartService {
 
         cartItemRepository.delete(cartItem);
 
-        return ResponseEntity
-                .ok(ApiType.builder()
-                        .code(200)
-                        .message("Remove cart item successfully")
-                        .data(true)
-                        .build());
+        return ResponseEntity.ok(ApiType.success(true));
     }
 
     @Transactional
@@ -104,11 +95,15 @@ public class CartService {
             cartItemRepository.save(cartItem);
         }
 
-        return ResponseEntity.ok(ApiType.builder()
-                .code(200)
-                .message("Update cart successfully")
-                .data(true)
-                .build());
+        return ResponseEntity.ok(ApiType.success(true));
+    }
+
+    public ResponseEntity<AType> viewCart(Integer userID) {
+
+        Cart cart = cartRepository.findByUserID(userID)
+                .orElseThrow(() -> new CartException(CartErrorCode.CART_NOT_EXIST));
+
+        return ResponseEntity.ok(ApiType.success(cart));
     }
 
 }

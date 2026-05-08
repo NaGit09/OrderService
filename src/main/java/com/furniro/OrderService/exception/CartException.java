@@ -1,6 +1,6 @@
 package com.furniro.OrderService.exception;
 
-import com.furniro.OrderService.utils.enums.CartErrorCode;
+import com.furniro.OrderService.utils.error.CartErrorCode;
 
 import lombok.Getter;
 

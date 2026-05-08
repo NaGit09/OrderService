@@ -1,4 +1,4 @@
-package com.furniro.OrderService.utils.enums;
+package com.furniro.OrderService.utils.error;
 
 import lombok.Getter;
 
