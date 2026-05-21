@@ -1,5 +1,6 @@
 package com.furniro.OrderService.database.entity.cart;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -16,6 +17,7 @@ public class CartItem {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer cartItemID;
 
+    @JsonBackReference
     @ManyToOne
     @JoinColumn(name = "CartID")
     private Cart cart;
@@ -26,6 +28,9 @@ public class CartItem {
     @Column(nullable = false)
     private Integer quantity;
 
+    @Column(nullable = false)
+    private Double price;
+    
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

@@ -109,4 +109,31 @@ public class PayPalService {
             throw new RuntimeException("PayPal Order Capture Error: " + e.getMessage());
         }
     }
+
+    public Map<String, Object> getOrderDetails(String orderId) {
+        try {
+            String accessToken = getAccessToken();
+            RestTemplate restTemplate = new RestTemplate();
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(accessToken);
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            HttpEntity<String> request = new HttpEntity<>(headers);
+
+            ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
+                    BASE_URL + "/v2/checkout/orders/" + orderId,
+                    HttpMethod.GET,
+                    request,
+                    new ParameterizedTypeReference<Map<String, Object>>() {}
+            );
+
+            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+                return response.getBody();
+            }
+            throw new RuntimeException("Failed to get PayPal order details: " + response.getStatusCode());
+        } catch (Exception e) {
+            throw new RuntimeException("PayPal Order Fetch Error: " + e.getMessage());
+        }
+    }
 }

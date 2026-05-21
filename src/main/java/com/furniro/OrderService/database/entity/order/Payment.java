@@ -1,5 +1,6 @@
 package com.furniro.OrderService.database.entity.order;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -23,6 +24,7 @@ public class Payment {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer paymentId;
 
+    @JsonBackReference(value = "order-payments")
     @ManyToOne
     @JoinColumn(name = "OrderID")
     private Order order;
@@ -34,10 +36,12 @@ public class Payment {
     private String paypalCaptureId;
 
     @Enumerated(EnumType.STRING)
-    private PaymentStatus paymentStatus;
+    @Builder.Default
+    private PaymentStatus paymentStatus= PaymentStatus.PENDING;
 
     @Enumerated(EnumType.STRING)
-    private PaymentMethod paymentMethod;
+    @Builder.Default
+    private PaymentMethod paymentMethod= PaymentMethod.COD;
 
     private String currency;
 

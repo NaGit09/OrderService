@@ -6,9 +6,15 @@ import lombok.Data;
 
 @Data
 public class UpdateCartReq {
-    private int cartID;
-    private int userID;
-    private int variantID;
-    private int quantity;
+    private Integer cartID;
+    
+    private Integer userID;
+
+    private Integer variantID;
+
+    private Integer quantity;
+
     private CartAction action;
+
+    private Double price;
 }

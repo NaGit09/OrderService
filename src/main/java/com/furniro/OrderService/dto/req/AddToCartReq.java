@@ -8,15 +8,19 @@ import lombok.Data;
 public class AddToCartReq {
 
     @NotNull(message = "Cart ID is required")
-    private int cartID;
+    private Integer cartID;
 
     @NotNull(message = "User ID is required")
-    private int userID;
+    private Integer userID;
 
     @NotNull(message = "Variant ID is required")
-    private int variantID;
+    private Integer variantID;
     
     @Min(value = 1, message = "Quantity must be at least 1")
     @NotNull(message = "Quantity is required")
-    private int quantity;
+    private Integer quantity;
+
+    @NotNull(message = "Price is required")
+    private Double price;
+
 }

@@ -1,5 +1,6 @@
 package com.furniro.OrderService.database.entity.order;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -49,9 +50,11 @@ public class Order {
     private LocalDateTime completedAt;
 
     // Relationship
+    @JsonManagedReference(value = "order-items")
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     private List<OrderItem> items;
 
+    @JsonManagedReference(value = "order-payments")
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     private List<Payment> payments;
 

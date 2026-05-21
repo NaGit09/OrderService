@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/api/paypal")
+@RequestMapping("/paypal")
 @RequiredArgsConstructor
 public class PayPalController {
 

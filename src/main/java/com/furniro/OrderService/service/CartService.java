@@ -46,12 +46,16 @@ public class CartService {
             Integer newQuantity = cartItem.getQuantity() + req.getQuantity();
 
             cartItem.setQuantity(newQuantity);
+            if (req.getPrice() != null) {
+                cartItem.setPrice(req.getPrice());
+            }
             
         } else {
             cartItem = new CartItem();
             cartItem.setCart(cart);
             cartItem.setVariantID(req.getVariantID());
             cartItem.setQuantity(req.getQuantity());
+            cartItem.setPrice(req.getPrice());
         }
 
         cartItemRepository.save(cartItem);
@@ -92,6 +96,9 @@ public class CartService {
             cartItemRepository.delete(cartItem);
         } else {
             cartItem.setQuantity(newQuantity);
+            if (req.getPrice() != null) {
+                cartItem.setPrice(req.getPrice());
+            }
             cartItemRepository.save(cartItem);
         }
 
@@ -106,4 +113,12 @@ public class CartService {
         return ResponseEntity.ok(ApiType.success(cart));
     }
 
+    public void createNewCartForUser(Integer userID) {
+        // Create a new cart when user register account successfully
+        Cart cart = new Cart();
+
+        cart.setUserID(userID);
+        
+        cartRepository.save(cart);
+    }
 }

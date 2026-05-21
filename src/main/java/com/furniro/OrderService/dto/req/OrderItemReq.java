@@ -6,7 +6,10 @@ import lombok.Data;
 
 @Data
 public class OrderItemReq {
+    
     private Integer variantID;
+
     private Integer quantity;
+
     private BigDecimal price;
 }

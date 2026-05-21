@@ -10,7 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/api/v1/cart")
+@RequestMapping("/cart")
 @RequiredArgsConstructor
 public class CartController {
 
@@ -30,4 +30,9 @@ public class CartController {
     public ResponseEntity<AType> updateCart(@RequestBody UpdateCartReq req) {
         return cartService.updateCart(req);
     }
+
+    @GetMapping("/{userID}")
+    public ResponseEntity<AType> getCartByUserID(@PathVariable int userID) {
+        return cartService.viewCart(userID);
+}
 }
