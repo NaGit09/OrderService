@@ -18,6 +18,9 @@ public class PayPalService {
     @Autowired
     private PayPalConfig config;
 
+    private final String returnUrl = "http://localhost:3000/success?title=order&message=order%20successfully";
+    private final String cancelUrl = "http://localhost:3000/error?title=order&message=payment%20failed";
+
     private final String BASE_URL = "https://api-m.sandbox.paypal.com";
 
     public String getAccessToken() {
@@ -34,7 +37,8 @@ public class PayPalService {
                     BASE_URL + "/v1/oauth2/token",
                     HttpMethod.POST,
                     request,
-                    new ParameterizedTypeReference<Map<String, Object>>() {});
+                    new ParameterizedTypeReference<Map<String, Object>>() {
+                    });
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 return (String) response.getBody().get("access_token");
@@ -45,7 +49,7 @@ public class PayPalService {
         }
     }
 
-    public Map<String, Object> createOrder(String amountValue, String currencyCode) {
+    public Map<String, Object> createOrder(String amountValue, String currencyCode , Integer orderId) {
         try {
             String accessToken = getAccessToken();
             RestTemplate restTemplate = new RestTemplate();
@@ -57,22 +61,34 @@ public class PayPalService {
             Map<String, Object> body = new HashMap<>();
             body.put("intent", "CAPTURE");
 
+            // 1. Cấu hình Amount
             Map<String, String> amount = new HashMap<>();
             amount.put("currency_code", currencyCode);
             amount.put("value", amountValue);
 
+            // 2. Cấu hình Purchase Unit
             Map<String, Object> purchaseUnit = new HashMap<>();
             purchaseUnit.put("amount", amount);
-
             body.put("purchase_units", List.of(purchaseUnit));
 
+            // 3. THÊM MỚI: Cấu hình application_context để xử lý điều hướng quay về website
+            Map<String, String> applicationContext = new HashMap<>();
+            applicationContext.put("return_url", returnUrl + "&type=order&orderId=" + orderId); // Truyền orderId để sau này xác định đơn hàng nào đã thanh toán
+            applicationContext.put("cancel_url", cancelUrl);
+            applicationContext.put("landing_page", "LOGIN"); // Ép PayPal hiển thị trang Login trước
+            applicationContext.put("user_action", "PAY_NOW"); // Hiển thị nút "Pay Now" thay vì "Continue" trên PayPal
+
+            body.put("application_context", applicationContext);
+
+            // Gửi request
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
             ResponseEntity<Map<String, Object>> response = restTemplate.exchange(
                     BASE_URL + "/v2/checkout/orders",
                     HttpMethod.POST,
                     request,
-                    new ParameterizedTypeReference<Map<String, Object>>() {});
+                    new ParameterizedTypeReference<Map<String, Object>>() {
+                    });
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 return response.getBody();
@@ -98,8 +114,8 @@ public class PayPalService {
                     BASE_URL + "/v2/checkout/orders/" + orderId + "/capture",
                     HttpMethod.POST,
                     request,
-                    new ParameterizedTypeReference<Map<String, Object>>() {}
-            );
+                    new ParameterizedTypeReference<Map<String, Object>>() {
+                    });
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 return response.getBody();
@@ -125,8 +141,8 @@ public class PayPalService {
                     BASE_URL + "/v2/checkout/orders/" + orderId,
                     HttpMethod.GET,
                     request,
-                    new ParameterizedTypeReference<Map<String, Object>>() {}
-            );
+                    new ParameterizedTypeReference<Map<String, Object>>() {
+                    });
 
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 return response.getBody();

@@ -16,19 +16,30 @@ public class OrderController {
 
     private final OrderService orderService;
 
+    @GetMapping("/history")
+    public ResponseEntity<AType> getOrdersByUserID(
+            @RequestParam Integer userID,
+            @RequestParam(required = false) OrderStatus status,
+            @RequestParam(defaultValue = "0") Integer page,
+            @RequestParam(defaultValue = "10") Integer size) {
+        return orderService.getOrderHistoryForUser(userID, status, page, size);
+    }
+
+    @GetMapping("/{orderID}")
+    public ResponseEntity<AType> getOrderDetails(
+            @PathVariable Integer orderID,
+            @RequestParam(required = false) Integer userID) {
+        return orderService.getOrderDetails(orderID, userID);
+    }
+
     @PostMapping("/create")
     public ResponseEntity<AType> createOrder(@RequestBody CreateOrderReq orderReq) {
         return orderService.createOrder(orderReq);
     }
 
-    @PatchMapping("/status")
-    public ResponseEntity<AType> changeStatusOrder(@RequestBody UpdateStatusOrder updateStatusOrder) {
-        return orderService.changeStatusOrder(updateStatusOrder);
-    }
-
     @PostMapping("/capture-paypal")
-    public ResponseEntity<AType> capturePayPalOrder(@RequestParam String orderId) {
-        return orderService.capturePayPalOrder(orderId);
+    public ResponseEntity<AType> capturePayPalOrder(@RequestParam Integer orderID) {
+        return orderService.capturePayPalOrder(orderID);
     }
 
     // ADMIN API
@@ -52,4 +63,3 @@ public class OrderController {
         return orderService.changeStatusOrder(updateStatusOrder);
     }
 }
-

@@ -14,6 +14,7 @@ import com.furniro.OrderService.dto.API.ApiType;
 import com.furniro.OrderService.dto.API.ErrorType;
 import com.furniro.OrderService.dto.req.CreateOrderReq;
 import com.furniro.OrderService.dto.req.OrderItemReq;
+import com.furniro.OrderService.dto.res.OrderHistoryRes;
 import com.furniro.OrderService.dto.req.UpdateStatusOrder;
 import com.furniro.OrderService.exception.CartException;
 import com.furniro.OrderService.exception.OrderException;
@@ -48,6 +49,22 @@ public class OrderService {
     private final CartRepository cartRepository;
     private final KafkaProducer producer;
     private final PayPalService payPalService;
+
+    // 0. get all order history of user (for user) with pagination and filtering by
+    // status
+    public ResponseEntity<AType> getOrderHistoryForUser(Integer userID, OrderStatus status, Integer page,
+            Integer size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("orderedAt").descending());
+        Page<Order> orders;
+        if (status != null) {
+            orders = orderRepository.findByUserIDAndStatus(userID, status, pageable);
+        } else {
+            orders = orderRepository.findByUserID(userID, pageable);
+        }
+
+        Page<OrderHistoryRes> orderHistoryResPage = orders.map(OrderHistoryRes::fromEntity);
+        return ResponseEntity.ok(ApiType.success(orderHistoryResPage));
+    }
 
     // 1. Create order for user
     @Transactional
@@ -115,7 +132,7 @@ public class OrderService {
         // Handle PayPal processing
         if (orderReq.getPaymentMethod() == PaymentMethod.PAYPAL) {
             Map<String, Object> paypalResponse = payPalService.createOrder(totalAmount.toPlainString(),
-                    orderReq.getCurrency());
+                    orderReq.getCurrency(), order.getOrderID());
             payment.setPaypalOrderId((String) paypalResponse.get("id"));
             order.setStatus(OrderStatus.CREATED);
 
@@ -154,9 +171,16 @@ public class OrderService {
     // 2. Capture PayPal order
     @Transactional
     @SuppressWarnings("unchecked")
-    public ResponseEntity<AType> capturePayPalOrder(String paypalOrderId) {
+    public ResponseEntity<AType> capturePayPalOrder(Integer orderId) {
+        // find order and get paypal orderid
+        Order order = paymentRepository.findById(orderId)
+                .orElseThrow(() -> new OrderException(OrderErrorCode.ORDER_NOT_EXIST))
+                .getOrder();
+
+        String paypalOrderId = order.getPayments().getPaypalOrderId();
         // Fetch current status from PayPal to make the operation idempotent
         Map<String, Object> orderDetails = payPalService.getOrderDetails(paypalOrderId);
+
         String orderStatus = (String) orderDetails.get("status");
 
         Map<String, Object> captureResponse;
@@ -192,7 +216,6 @@ public class OrderService {
             log.warn("Could not extract PayPal capture ID for order ID: {}", paypalOrderId);
         }
 
-        Order order = payment.getOrder();
         order.setStatus(OrderStatus.PAID);
 
         // Kafka: notify payment success
@@ -229,7 +252,7 @@ public class OrderService {
     // Shared Helper to keep Kafka notification blocks DRY (Don't Repeat Yourself)
     private void sendNotification(Integer userId, String title, String content) {
         Map<String, Object> data = Map.of(
-                "userId", userId,
+                "userID", userId,
                 "title", title,
                 "content", content,
                 "type", "UPDATE_ORDER_STATUS");
@@ -258,6 +281,18 @@ public class OrderService {
     public ResponseEntity<AType> getOrderDetailsForAdmin(Integer orderID) {
         Order order = orderRepository.findById(orderID)
                 .orElseThrow(() -> new OrderException(OrderErrorCode.ORDER_NOT_EXIST));
+        return ResponseEntity.ok(ApiType.success(order));
+    }
+
+    // 7. User or Admin: Get specific order details
+    public ResponseEntity<AType> getOrderDetails(Integer orderID, Integer userID) {
+        Order order = orderRepository.findById(orderID)
+                .orElseThrow(() -> new OrderException(OrderErrorCode.ORDER_NOT_EXIST));
+
+        if (userID != null && !order.getUserID().equals(userID)) {
+            throw new OrderException(OrderErrorCode.ORDER_NOT_EXIST);
+        }
+
         return ResponseEntity.ok(ApiType.success(order));
     }
 }

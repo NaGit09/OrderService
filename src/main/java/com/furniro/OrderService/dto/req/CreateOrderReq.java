@@ -27,4 +27,8 @@ public class CreateOrderReq {
 
     private List<OrderItemReq> orderItems;
 
+    private String returnUrl;
+
+    private String cancelUrl;
+
 }

@@ -55,7 +55,7 @@ public class Order {
     private List<OrderItem> items;
 
     @JsonManagedReference(value = "order-payments")
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
-    private List<Payment> payments;
+    @OneToOne(mappedBy = "order", cascade = CascadeType.ALL)
+    private Payment payments;
 
 }
