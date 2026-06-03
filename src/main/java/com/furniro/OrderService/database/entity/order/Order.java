@@ -44,6 +44,10 @@ public class Order {
     @Column(columnDefinition = "TEXT")
     private String orderNote;
 
+    private String promoCode;
+
+    private BigDecimal discountAmount;
+
     @Builder.Default
     private LocalDateTime orderedAt = LocalDateTime.now();
 

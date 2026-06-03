@@ -5,6 +5,7 @@ import com.furniro.OrderService.database.entity.cart.CartItem;
 import com.furniro.OrderService.database.entity.order.Order;
 import com.furniro.OrderService.database.entity.order.OrderItem;
 import com.furniro.OrderService.database.entity.order.Payment;
+import com.furniro.OrderService.database.entity.order.PromoCode;
 import com.furniro.OrderService.database.repository.cart.CartRepository;
 import com.furniro.OrderService.database.repository.order.OrderItemRepository;
 import com.furniro.OrderService.database.repository.order.OrderRepository;
@@ -22,10 +23,12 @@ import com.furniro.OrderService.service.kafka.KafkaProducer;
 import com.furniro.OrderService.utils.enums.OrderStatus;
 import com.furniro.OrderService.utils.enums.PaymentMethod;
 import com.furniro.OrderService.utils.enums.PaymentStatus;
+import com.furniro.OrderService.utils.enums.DiscountType;
 import com.furniro.OrderService.utils.error.CartErrorCode;
 import com.furniro.OrderService.utils.error.OrderErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import java.util.HashMap;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -49,6 +52,8 @@ public class OrderService {
     private final CartRepository cartRepository;
     private final KafkaProducer producer;
     private final PayPalService payPalService;
+    private final CatalogServiceClient catalogServiceClient;
+    private final PromoCodeService promoCodeService;
 
     // 0. get all order history of user (for user) with pagination and filtering by
     // status
@@ -78,37 +83,52 @@ public class OrderService {
             throw new CartException(CartErrorCode.CART_ITEM_NOT_EXIST);
         }
 
-        // Map request items to a price map: variantID -> price
-        Map<Integer, BigDecimal> priceMap = orderReq.getOrderItems().stream()
-                .filter(item -> item.getVariantID() != null && item.getPrice() != null)
-                .collect(Collectors.toMap(OrderItemReq::getVariantID, OrderItemReq::getPrice, (p1, p2) -> p1));
+        // Map request items to a price map: variantID -> validated price from CatalogServiceClient
+        Map<Integer, BigDecimal> validatedPriceMap = new HashMap<>();
+        for (CartItem cartItem : cartItems) {
+            BigDecimal price = catalogServiceClient.getVariantPrice(cartItem.getVariantID());
+            validatedPriceMap.put(cartItem.getVariantID(), price);
+        }
 
-        // Calculate total amount based on cart items and request prices
-        BigDecimal totalAmount = cartItems.stream()
+        // Calculate subtotal based on cart items and secure backend prices
+        BigDecimal subtotal = cartItems.stream()
                 .map(cartItem -> {
-                    BigDecimal price = priceMap.get(cartItem.getVariantID());
-                    if (price == null) {
-                        throw new OrderException(OrderErrorCode.ORDER_ITEM_NOT_EXIST);
-                    }
+                    BigDecimal price = validatedPriceMap.get(cartItem.getVariantID());
                     return price.multiply(BigDecimal.valueOf(cartItem.getQuantity()));
                 })
-                .reduce(BigDecimal.ZERO, BigDecimal::add)
-                .add(BigDecimal.valueOf(orderReq.getShippingFee()));
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // Create and save order
+        // Handle promo code logic if provided
+        BigDecimal discountAmount = BigDecimal.ZERO;
+        PromoCode promo = null;
+        if (orderReq.getPromoCode() != null && !orderReq.getPromoCode().trim().isEmpty()) {
+            promo = promoCodeService.validateAndCalculateDiscount(orderReq.getPromoCode(), subtotal);
+            discountAmount = promoCodeService.calculateDiscountAmount(promo, subtotal);
+        }
+
+        // Compute final total amount with shipping fee and promo discount applied
+        BigDecimal shippingFee = BigDecimal.valueOf(orderReq.getShippingFee());
+        BigDecimal totalAmount = subtotal.add(shippingFee).subtract(discountAmount);
+        if (totalAmount.compareTo(BigDecimal.ZERO) < 0) {
+            totalAmount = BigDecimal.ZERO;
+        }
+
+        // Create and save order with secure pricing audit trail
         Order order = orderRepository.save(Order.builder()
                 .userID(orderReq.getUserID())
                 .orderNote(orderReq.getNote())
                 .address(orderReq.getAddress())
-                .shippingFee(BigDecimal.valueOf(orderReq.getShippingFee()))
+                .shippingFee(shippingFee)
                 .totalAmount(totalAmount)
                 .currency(orderReq.getCurrency())
                 .status(OrderStatus.PENDING)
+                .promoCode(promo != null ? promo.getCode() : null)
+                .discountAmount(discountAmount)
                 .build());
 
-        // Create and save order items from CartItems
+        // Create and save order items from CartItems using authentic backend prices
         List<OrderItem> orderItems = cartItems.stream().map(cartItem -> {
-            BigDecimal price = priceMap.get(cartItem.getVariantID());
+            BigDecimal price = validatedPriceMap.get(cartItem.getVariantID());
             return OrderItem.builder()
                     .variant(cartItem.getVariantID())
                     .quantity(cartItem.getQuantity())
@@ -157,6 +177,11 @@ public class OrderService {
         }
 
         paymentRepository.save(payment);
+
+        // Consume promo code (updates database usage counts)
+        if (promo != null) {
+            promoCodeService.consumePromo(promo);
+        }
 
         // Clear the user's cart (empty the cart after checkout)
         cartItems.clear();
@@ -295,4 +320,10 @@ public class OrderService {
 
         return ResponseEntity.ok(ApiType.success(order));
     }
+
+    public ResponseEntity<AType> getTotalOrders () {
+        Long total = orderRepository.count();
+        return ResponseEntity.ok(ApiType.success(total));
+    }
+
 }

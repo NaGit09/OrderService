@@ -62,4 +62,9 @@ public class OrderController {
     public ResponseEntity<AType> changeStatusOrderForAdmin(@RequestBody UpdateStatusOrder updateStatusOrder) {
         return orderService.changeStatusOrder(updateStatusOrder);
     }
+
+    @GetMapping("/total")
+    public ResponseEntity<AType> getTotalOrders () {
+        return orderService.getTotalOrders();
+    }
 }

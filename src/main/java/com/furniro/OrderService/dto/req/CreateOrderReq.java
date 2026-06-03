@@ -31,4 +31,6 @@ public class CreateOrderReq {
 
     private String cancelUrl;
 
+    private String promoCode;
+
 }
