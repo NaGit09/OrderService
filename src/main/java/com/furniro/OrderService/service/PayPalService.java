@@ -7,6 +7,8 @@ import org.springframework.web.client.RestTemplate;
 
 import com.furniro.OrderService.config.PayPalConfig;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -60,6 +62,14 @@ public class PayPalService {
 
             Map<String, Object> body = new HashMap<>();
             body.put("intent", "CAPTURE");
+
+            if ("VND".equalsIgnoreCase(currencyCode)) {
+                BigDecimal vndAmount = new BigDecimal(amountValue);
+                BigDecimal exchangeRate = new BigDecimal("25000");
+                BigDecimal usdAmount = vndAmount.divide(exchangeRate, 2, RoundingMode.HALF_UP);
+                amountValue = usdAmount.toPlainString();
+                currencyCode = "USD";
+            }
 
             // 1. Cấu hình Amount
             Map<String, String> amount = new HashMap<>();

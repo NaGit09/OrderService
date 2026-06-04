@@ -279,7 +279,7 @@ public class OrderService {
         Map<String, Object> data = Map.of(
                 "userID", userId,
                 "title", title,
-                "content", content,
+                "message", content,
                 "type", "UPDATE_ORDER_STATUS");
         producer.send("notification.created", data);
     }
