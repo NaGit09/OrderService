@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.cache.annotation.CacheEvict;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -86,6 +87,7 @@ public class PromoCodeService {
      * Transactionally increment the usage count of the promo code.
      */
     @Transactional
+    @CacheEvict(value = "order:promo", key = "#promo.code.toUpperCase()")
     public void consumePromo(PromoCode promo) {
         if (promo == null) {
             return;
