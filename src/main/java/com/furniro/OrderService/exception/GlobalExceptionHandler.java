@@ -11,13 +11,10 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(BaseException.class)
-    public ResponseEntity<AType> handleAppExceptions(BaseException ex) {
-        AType error = ErrorType.builder()
-                .code(ex.getCode())
-                .message(ex.getMessage())
-                .build();
+    @ExceptionHandler(CustomException.class)
+    public ResponseEntity<AType> handleAppExceptions(CustomException ex) {
+        ErrorType error = ex.getErrorCode();
 
-        return new ResponseEntity<>(error, HttpStatus.valueOf(ex.getCode()));
+        return new ResponseEntity<>(error, HttpStatus.valueOf(error.getCode()));
     }
 }

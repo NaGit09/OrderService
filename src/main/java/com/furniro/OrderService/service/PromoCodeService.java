@@ -2,7 +2,7 @@ package com.furniro.OrderService.service;
 
 import com.furniro.OrderService.database.entity.order.PromoCode;
 import com.furniro.OrderService.database.repository.order.PromoCodeRepository;
-import com.furniro.OrderService.exception.OrderException;
+import com.furniro.OrderService.exception.CustomException;
 import com.furniro.OrderService.utils.enums.DiscountType;
 import com.furniro.OrderService.utils.error.OrderErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -32,27 +32,27 @@ public class PromoCodeService {
 
         // 1. Fetch promo code
         PromoCode promo = promoCodeRepository.findByCode(codeStr.trim().toUpperCase())
-                .orElseThrow(() -> new OrderException(OrderErrorCode.PROMO_NOT_FOUND));
+                .orElseThrow(() -> new CustomException(OrderErrorCode.PROMO_NOT_FOUND));
 
         // 2. Check active
         if (promo.getActive() == null || !promo.getActive()) {
-            throw new OrderException(OrderErrorCode.PROMO_EXPIRED);
+            throw new CustomException(OrderErrorCode.PROMO_EXPIRED);
         }
 
         // 3. Check expiration date
         if (promo.getExpiryDate() != null && promo.getExpiryDate().isBefore(LocalDateTime.now())) {
-            throw new OrderException(OrderErrorCode.PROMO_EXPIRED);
+            throw new CustomException(OrderErrorCode.PROMO_EXPIRED);
         }
 
         // 4. Check usage limits
         if (promo.getUsedCount() != null && promo.getMaxUses() != null && 
                 promo.getUsedCount() >= promo.getMaxUses()) {
-            throw new OrderException(OrderErrorCode.PROMO_LIMIT_REACHED);
+            throw new CustomException(OrderErrorCode.PROMO_LIMIT_REACHED);
         }
 
         // 5. Check minimum spend
         if (promo.getMinSpend() != null && subtotal.compareTo(promo.getMinSpend()) < 0) {
-            throw new OrderException(OrderErrorCode.PROMO_MIN_SPEND_NOT_MET);
+            throw new CustomException(OrderErrorCode.PROMO_MIN_SPEND_NOT_MET);
         }
 
         return promo;

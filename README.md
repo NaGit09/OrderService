@@ -16,7 +16,7 @@ The Order Service is built with a modern, high-performance architecture to ensur
 
 ## 🛠 Tech Stack
 
-- **Core**: Java 17, Spring Boot
+- **Core**: Java 25, Spring Boot
 - **Database**: MySQL (Order & Payment records)
 - **Messaging**: Apache Kafka (Asynchronous events)
 - **Caching**: Redis (Cart management)
@@ -81,7 +81,7 @@ The Order Service implements a standard PayPal Checkout flow:
 ## 🚀 Getting Started
 
 ### Prerequisites
-- **JDK 17+**
+- **JDK 25+**
 - **Maven**
 - **Docker** (Recommended for MySQL, Kafka, and Redis)
 

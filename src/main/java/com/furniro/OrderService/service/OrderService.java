@@ -17,8 +17,7 @@ import com.furniro.OrderService.dto.req.CreateOrderReq;
 import com.furniro.OrderService.dto.req.OrderItemReq;
 import com.furniro.OrderService.dto.res.OrderHistoryRes;
 import com.furniro.OrderService.dto.req.UpdateStatusOrder;
-import com.furniro.OrderService.exception.CartException;
-import com.furniro.OrderService.exception.OrderException;
+import com.furniro.OrderService.exception.CustomException;
 import com.furniro.OrderService.service.kafka.KafkaProducer;
 import com.furniro.OrderService.utils.enums.OrderStatus;
 import com.furniro.OrderService.utils.enums.PaymentMethod;
@@ -76,11 +75,11 @@ public class OrderService {
     public ResponseEntity<AType> createOrder(CreateOrderReq orderReq) {
         // Fetch user's cart from database
         Cart cart = cartRepository.findByUserID(orderReq.getUserID())
-                .orElseThrow(() -> new CartException(CartErrorCode.CART_NOT_EXIST));
+                .orElseThrow(() -> new CustomException(CartErrorCode.CART_NOT_EXIST));
 
         List<CartItem> cartItems = cart.getItems();
         if (cartItems == null || cartItems.isEmpty()) {
-            throw new CartException(CartErrorCode.CART_ITEM_NOT_EXIST);
+            throw new CustomException(CartErrorCode.CART_ITEM_NOT_EXIST);
         }
 
         // Map request items to a price map: variantID -> validated price from CatalogServiceClient
@@ -199,7 +198,7 @@ public class OrderService {
     public ResponseEntity<AType> capturePayPalOrder(Integer orderId) {
         // find order and get paypal orderid
         Order order = paymentRepository.findById(orderId)
-                .orElseThrow(() -> new OrderException(OrderErrorCode.ORDER_NOT_EXIST))
+                .orElseThrow(() -> new CustomException(OrderErrorCode.ORDER_NOT_EXIST))
                 .getOrder();
 
         String paypalOrderId = order.getPayments().getPaypalOrderId();
@@ -227,7 +226,7 @@ public class OrderService {
         }
 
         Payment payment = paymentRepository.findByPaypalOrderId(paypalOrderId)
-                .orElseThrow(() -> new OrderException(OrderErrorCode.ORDER_NOT_EXIST));
+                .orElseThrow(() -> new CustomException(OrderErrorCode.ORDER_NOT_EXIST));
 
         payment.setPaymentStatus(PaymentStatus.PAID);
 
@@ -253,7 +252,7 @@ public class OrderService {
     @Transactional
     public ResponseEntity<AType> changeStatusOrder(UpdateStatusOrder updateStatusOrder) {
         Order order = orderRepository.findById(updateStatusOrder.getOrderID())
-                .orElseThrow(() -> new OrderException(OrderErrorCode.ORDER_NOT_EXIST));
+                .orElseThrow(() -> new CustomException(OrderErrorCode.ORDER_NOT_EXIST));
 
         order.setStatus(updateStatusOrder.getStatus());
 
@@ -266,7 +265,7 @@ public class OrderService {
     @Transactional
     public void updateOrderStatus(Integer orderId, String status) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new OrderException(OrderErrorCode.ORDER_NOT_EXIST));
+                .orElseThrow(() -> new CustomException(OrderErrorCode.ORDER_NOT_EXIST));
 
         order.setStatus(OrderStatus.valueOf(status));
 
@@ -305,17 +304,17 @@ public class OrderService {
     // 6. Admin: Get specific order details
     public ResponseEntity<AType> getOrderDetailsForAdmin(Integer orderID) {
         Order order = orderRepository.findById(orderID)
-                .orElseThrow(() -> new OrderException(OrderErrorCode.ORDER_NOT_EXIST));
+                .orElseThrow(() -> new CustomException(OrderErrorCode.ORDER_NOT_EXIST));
         return ResponseEntity.ok(ApiType.success(order));
     }
 
     // 7. User or Admin: Get specific order details
     public ResponseEntity<AType> getOrderDetails(Integer orderID, Integer userID) {
         Order order = orderRepository.findById(orderID)
-                .orElseThrow(() -> new OrderException(OrderErrorCode.ORDER_NOT_EXIST));
+                .orElseThrow(() -> new CustomException(OrderErrorCode.ORDER_NOT_EXIST));
 
         if (userID != null && !order.getUserID().equals(userID)) {
-            throw new OrderException(OrderErrorCode.ORDER_NOT_EXIST);
+            throw new CustomException(OrderErrorCode.ORDER_NOT_EXIST);
         }
 
         return ResponseEntity.ok(ApiType.success(order));

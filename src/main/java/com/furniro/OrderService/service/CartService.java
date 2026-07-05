@@ -14,7 +14,7 @@ import com.furniro.OrderService.dto.API.ApiType;
 import com.furniro.OrderService.dto.req.AddToCartReq;
 import com.furniro.OrderService.dto.req.RemoveCartItemReq;
 import com.furniro.OrderService.dto.req.UpdateCartReq;
-import com.furniro.OrderService.exception.CartException;
+import com.furniro.OrderService.exception.CustomException;
 import com.furniro.OrderService.utils.CartUtil;
 import com.furniro.OrderService.utils.error.CartErrorCode;
 
@@ -32,7 +32,7 @@ public class CartService {
     public ResponseEntity<AType> addToCart(AddToCartReq req) {
 
         Cart cart = cartRepository.findByCartIDAndUserID(req.getCartID(), req.getUserID())
-                .orElseThrow(() -> new CartException(CartErrorCode.CART_NOT_EXIST));
+                .orElseThrow(() -> new CustomException(CartErrorCode.CART_NOT_EXIST));
 
         Optional<CartItem> existingOpt = cartItemRepository
                 .findByCartAndVariantID(cart, req.getVariantID());
@@ -67,10 +67,10 @@ public class CartService {
     public ResponseEntity<AType> removeCartItem(RemoveCartItemReq req) {
 
         Cart cart = cartRepository.findByCartIDAndUserID(req.getCartID(), req.getUserID())
-                .orElseThrow(() -> new CartException(CartErrorCode.CART_NOT_EXIST));
+                .orElseThrow(() -> new CustomException(CartErrorCode.CART_NOT_EXIST));
 
         CartItem cartItem = cartItemRepository.findByCartAndVariantID(cart, req.getVariantID())
-                .orElseThrow(() -> new CartException(CartErrorCode.CART_ITEM_NOT_EXIST));
+                .orElseThrow(() -> new CustomException(CartErrorCode.CART_ITEM_NOT_EXIST));
 
         cartItemRepository.delete(cartItem);
 
@@ -81,10 +81,10 @@ public class CartService {
     public ResponseEntity<AType> updateCart(UpdateCartReq req) {
 
         Cart cart = cartRepository.findByCartIDAndUserID(req.getCartID(), req.getUserID())
-                .orElseThrow(() -> new CartException(CartErrorCode.CART_NOT_EXIST));
+                .orElseThrow(() -> new CustomException(CartErrorCode.CART_NOT_EXIST));
 
         CartItem cartItem = cartItemRepository.findByCartAndVariantID(cart, req.getVariantID())
-                .orElseThrow(() -> new CartException(CartErrorCode.CART_ITEM_NOT_EXIST));
+                .orElseThrow(() -> new CustomException(CartErrorCode.CART_ITEM_NOT_EXIST));
 
         int newQuantity = CartUtil.calculateQuantity(
             cartItem.getQuantity(),
@@ -108,7 +108,7 @@ public class CartService {
     public ResponseEntity<AType> viewCart(Integer userID) {
 
         Cart cart = cartRepository.findByUserID(userID)
-                .orElseThrow(() -> new CartException(CartErrorCode.CART_NOT_EXIST));
+                .orElseThrow(() -> new CustomException(CartErrorCode.CART_NOT_EXIST));
 
         return ResponseEntity.ok(ApiType.success(cart));
     }
