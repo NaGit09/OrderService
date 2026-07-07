@@ -6,6 +6,9 @@ import com.furniro.OrderService.dto.req.UpdateStatusOrder;
 import com.furniro.OrderService.service.OrderService;
 import com.furniro.OrderService.utils.enums.OrderStatus;
 import lombok.RequiredArgsConstructor;
+
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -53,6 +56,11 @@ public class OrderController {
         return orderService.getAllOrdersForAdmin(page, size, status, userID);
     }
 
+    @GetMapping("/admin/statistics")
+    public ResponseEntity<AType> getAdminStatistics(@RequestParam(required = false, defaultValue = "This Year") String timeRange) {
+        return orderService.getAdminStatistics(timeRange);
+    }
+
     @GetMapping("/admin/{orderID}")
     public ResponseEntity<AType> getOrderDetailsForAdmin(@PathVariable Integer orderID) {
         return orderService.getOrderDetailsForAdmin(orderID);
@@ -66,5 +74,12 @@ public class OrderController {
     @GetMapping("/total")
     public ResponseEntity<AType> getTotalOrders () {
         return orderService.getTotalOrders();
+    }
+
+    @GetMapping("/check-purchase")
+    public ResponseEntity<Boolean> checkPurchase(
+            @RequestParam Integer userID,
+            @RequestParam List<Integer> variantIDs) {
+        return ResponseEntity.ok(orderService.checkUserPurchasedVariants(userID, variantIDs));
     }
 }

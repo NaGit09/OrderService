@@ -9,6 +9,6 @@ import java.util.Optional;
 
 @Repository
 public interface PromoCodeRepository extends JpaRepository<PromoCode, Integer> {
-    @Cacheable(value = "order:promo", key = "#code.toUpperCase()")
+    @Cacheable(value = "order:promo", key = "#code.toUpperCase()", unless = "#result == null || !#result.isPresent()")
     Optional<PromoCode> findByCode(String code);
 }

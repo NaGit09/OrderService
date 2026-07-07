@@ -61,4 +61,22 @@ public class CatalogServiceClient {
         log.info("Using mock catalog pricing for variantID: {} -> Price: {}", variantID, mockPrice);
         return mockPrice;
     }
+
+    /**
+     * Fetch the total number of products from the product service.
+     */
+    public Long getTotalProductsCount() {
+        try {
+            String url = productServiceUrl + "/products/total";
+            log.debug("Fetching total products count from: {}", url);
+            Map response = restTemplate.getForObject(url, Map.class);
+            if (response != null && response.get("data") != null) {
+                log.info("Successfully fetched total products count: {}", response.get("data"));
+                return ((Number) response.get("data")).longValue();
+            }
+        } catch (Exception e) {
+            log.warn("Failed to fetch total products count from ProductService: {}. Using fallback 0.", e.getMessage());
+        }
+        return 0L;
+    }
 }

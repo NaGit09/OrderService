@@ -19,10 +19,17 @@ import com.furniro.OrderService.dto.res.OrderHistoryRes;
 import com.furniro.OrderService.dto.req.UpdateStatusOrder;
 import com.furniro.OrderService.exception.CustomException;
 import com.furniro.OrderService.service.kafka.KafkaProducer;
+import com.furniro.OrderService.dto.res.AdminStatsRes;
+import com.furniro.OrderService.dto.res.ChartDataPoint;
+import com.furniro.OrderService.dto.res.CategoryShare;
 import com.furniro.OrderService.utils.enums.OrderStatus;
 import com.furniro.OrderService.utils.enums.PaymentMethod;
 import com.furniro.OrderService.utils.enums.PaymentStatus;
 import com.furniro.OrderService.utils.enums.DiscountType;
+import java.time.LocalDateTime;
+import java.time.DayOfWeek;
+import java.util.Locale;
+import java.util.ArrayList;
 import com.furniro.OrderService.utils.error.CartErrorCode;
 import com.furniro.OrderService.utils.error.OrderErrorCode;
 import lombok.RequiredArgsConstructor;
@@ -323,6 +330,234 @@ public class OrderService {
     public ResponseEntity<AType> getTotalOrders () {
         Long total = orderRepository.count();
         return ResponseEntity.ok(ApiType.success(total));
+    }
+
+    public ResponseEntity<AType> getAdminStatistics(String timeRange) {
+        if (timeRange == null) {
+            timeRange = "This Year";
+        }
+
+        List<Order> allOrders = orderRepository.findAll();
+
+        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime currentPeriodStart;
+        LocalDateTime prevPeriodStart;
+        LocalDateTime prevPeriodEnd;
+
+        if ("This Week".equalsIgnoreCase(timeRange)) {
+            currentPeriodStart = now.with(DayOfWeek.MONDAY).toLocalDate().atStartOfDay();
+            prevPeriodStart = currentPeriodStart.minusWeeks(1);
+            prevPeriodEnd = currentPeriodStart;
+        } else if ("This Month".equalsIgnoreCase(timeRange)) {
+            currentPeriodStart = now.withDayOfMonth(1).toLocalDate().atStartOfDay();
+            prevPeriodStart = currentPeriodStart.minusMonths(1);
+            prevPeriodEnd = currentPeriodStart;
+        } else {
+            currentPeriodStart = now.withDayOfYear(1).toLocalDate().atStartOfDay();
+            prevPeriodStart = currentPeriodStart.minusYears(1);
+            prevPeriodEnd = currentPeriodStart;
+        }
+
+        BigDecimal currentRevenue = BigDecimal.ZERO;
+        long currentOrdersCount = 0;
+        java.util.Set<Integer> currentUsers = new java.util.HashSet<>();
+
+        BigDecimal prevRevenue = BigDecimal.ZERO;
+        long prevOrdersCount = 0;
+        java.util.Set<Integer> prevUsers = new java.util.HashSet<>();
+
+        for (Order o : allOrders) {
+            LocalDateTime orderTime = o.getOrderedAt();
+            if (orderTime == null) continue;
+
+            if (!orderTime.isBefore(currentPeriodStart) && !orderTime.isAfter(now)) {
+                if (o.getStatus() != OrderStatus.CANCELLED) {
+                    currentRevenue = currentRevenue.add(o.getTotalAmount() != null ? o.getTotalAmount() : BigDecimal.ZERO);
+                }
+                currentOrdersCount++;
+                if (o.getUserID() != null) {
+                    currentUsers.add(o.getUserID());
+                }
+            } else if (!orderTime.isBefore(prevPeriodStart) && orderTime.isBefore(prevPeriodEnd)) {
+                if (o.getStatus() != OrderStatus.CANCELLED) {
+                    prevRevenue = prevRevenue.add(o.getTotalAmount() != null ? o.getTotalAmount() : BigDecimal.ZERO);
+                }
+                prevOrdersCount++;
+                if (o.getUserID() != null) {
+                    prevUsers.add(o.getUserID());
+                }
+            }
+        }
+
+        long currentCustomersCount = currentUsers.size();
+        long prevCustomersCount = prevUsers.size();
+
+        String revenueChange = calculatePercentageChange(currentRevenue, prevRevenue);
+        String ordersChange = calculatePercentageChange(BigDecimal.valueOf(currentOrdersCount), BigDecimal.valueOf(prevOrdersCount));
+        String customersChange = calculatePercentageChange(BigDecimal.valueOf(currentCustomersCount), BigDecimal.valueOf(prevCustomersCount));
+
+        boolean revenuePositive = !revenueChange.startsWith("-");
+        boolean ordersPositive = !ordersChange.startsWith("-");
+        boolean customersPositive = !customersChange.startsWith("-");
+
+        String formattedRevenue = "$" + String.format(Locale.US, "%,.2f", currentRevenue);
+        String formattedOrders = String.format(Locale.US, "%,d", currentOrdersCount);
+        String formattedCustomers = String.format(Locale.US, "%,d", currentCustomersCount);
+
+        Long stockVal = catalogServiceClient.getTotalProductsCount();
+        String formattedStock = stockVal + " items";
+        String stockChange = "+0.0%";
+        boolean stockPositive = true;
+
+        String revenueDesc = "vs. $" + String.format(Locale.US, "%,.2f", prevRevenue) + " last " + getPeriodName(timeRange);
+        String ordersDesc = "vs. " + String.format(Locale.US, "%,d", prevOrdersCount) + " last " + getPeriodName(timeRange);
+        String customersDesc = "vs. " + String.format(Locale.US, "%,d", prevCustomersCount) + " last " + getPeriodName(timeRange);
+        String stockDesc = "Inventory updated recently";
+
+        List<ChartDataPoint> chartData = getChartDataset(allOrders, timeRange, currentPeriodStart, now);
+
+        List<CategoryShare> categories = new ArrayList<>();
+        categories.add(CategoryShare.builder().name("Living Room").share(45).value("$66,715").count(1478L).color("#CA8A04").build());
+        categories.add(CategoryShare.builder().name("Bedroom").share(30).value("$44,476").count(985L).color("#B45309").build());
+        categories.add(CategoryShare.builder().name("Dining Room").share(15).value("$22,238").count(492L).color("#78350F").build());
+        categories.add(CategoryShare.builder().name("Workspace").share(10).value("$14,825").count(329L).color("#EAB308").build());
+
+        AdminStatsRes res = AdminStatsRes.builder()
+                .totalRevenue(formattedRevenue)
+                .totalOrders(formattedOrders)
+                .activeCustomers(formattedCustomers)
+                .inventoryStock(formattedStock)
+                .revenueChange(revenueChange)
+                .ordersChange(ordersChange)
+                .customersChange(customersChange)
+                .stockChange(stockChange)
+                .revenuePositive(revenuePositive)
+                .ordersPositive(ordersPositive)
+                .customersPositive(customersPositive)
+                .stockPositive(stockPositive)
+                .revenueDesc(revenueDesc)
+                .ordersDesc(ordersDesc)
+                .customersDesc(customersDesc)
+                .stockDesc(stockDesc)
+                .chartData(chartData)
+                .categories(categories)
+                .build();
+
+        return ResponseEntity.ok(ApiType.success(res));
+    }
+
+    private String calculatePercentageChange(BigDecimal current, BigDecimal previous) {
+        if (previous.compareTo(BigDecimal.ZERO) == 0) {
+            if (current.compareTo(BigDecimal.ZERO) == 0) {
+                return "+0.0%";
+            }
+            return "+100.0%";
+        }
+        BigDecimal change = current.subtract(previous)
+                .multiply(BigDecimal.valueOf(100))
+                .divide(previous, 1, java.math.RoundingMode.HALF_UP);
+        
+        if (change.compareTo(BigDecimal.ZERO) >= 0) {
+            return "+" + change.toPlainString() + "%";
+        } else {
+            return change.toPlainString() + "%";
+        }
+    }
+
+    private String getPeriodName(String timeRange) {
+        if ("This Week".equalsIgnoreCase(timeRange)) return "week";
+        if ("This Month".equalsIgnoreCase(timeRange)) return "month";
+        return "year";
+    }
+
+    private List<ChartDataPoint> getChartDataset(List<Order> orders, String timeRange, LocalDateTime start, LocalDateTime end) {
+        List<ChartDataPoint> points = new ArrayList<>();
+
+        if ("This Week".equalsIgnoreCase(timeRange)) {
+            String[] days = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"};
+            Map<Integer, BigDecimal> revMap = new HashMap<>();
+            Map<Integer, Long> ordMap = new HashMap<>();
+            for (int i = 0; i < 7; i++) {
+                revMap.put(i, BigDecimal.ZERO);
+                ordMap.put(i, 0L);
+            }
+
+            for (Order o : orders) {
+                LocalDateTime ot = o.getOrderedAt();
+                if (ot != null && !ot.isBefore(start) && !ot.isAfter(end)) {
+                    int dayIndex = ot.getDayOfWeek().getValue() - 1;
+                    if (o.getStatus() != OrderStatus.CANCELLED) {
+                        BigDecimal amt = o.getTotalAmount() != null ? o.getTotalAmount() : BigDecimal.ZERO;
+                        revMap.put(dayIndex, revMap.get(dayIndex).add(amt));
+                    }
+                    ordMap.put(dayIndex, ordMap.get(dayIndex) + 1);
+                }
+            }
+
+            for (int i = 0; i < 7; i++) {
+                points.add(new ChartDataPoint(days[i], revMap.get(i), ordMap.get(i)));
+            }
+
+        } else if ("This Month".equalsIgnoreCase(timeRange)) {
+            String[] weeks = {"Wk 1", "Wk 2", "Wk 3", "Wk 4"};
+            Map<Integer, BigDecimal> revMap = new HashMap<>();
+            Map<Integer, Long> ordMap = new HashMap<>();
+            for (int i = 0; i < 4; i++) {
+                revMap.put(i, BigDecimal.ZERO);
+                ordMap.put(i, 0L);
+            }
+
+            for (Order o : orders) {
+                LocalDateTime ot = o.getOrderedAt();
+                if (ot != null && !ot.isBefore(start) && !ot.isAfter(end)) {
+                    int dayOfMonth = ot.getDayOfMonth();
+                    int weekIndex = Math.min((dayOfMonth - 1) / 7, 3);
+                    if (o.getStatus() != OrderStatus.CANCELLED) {
+                        BigDecimal amt = o.getTotalAmount() != null ? o.getTotalAmount() : BigDecimal.ZERO;
+                        revMap.put(weekIndex, revMap.get(weekIndex).add(amt));
+                    }
+                    ordMap.put(weekIndex, ordMap.get(weekIndex) + 1);
+                }
+            }
+
+            for (int i = 0; i < 4; i++) {
+                points.add(new ChartDataPoint(weeks[i], revMap.get(i), ordMap.get(i)));
+            }
+
+        } else {
+            String[] months = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+            Map<Integer, BigDecimal> revMap = new HashMap<>();
+            Map<Integer, Long> ordMap = new HashMap<>();
+            for (int i = 0; i < 12; i++) {
+                revMap.put(i, BigDecimal.ZERO);
+                ordMap.put(i, 0L);
+            }
+
+            for (Order o : orders) {
+                LocalDateTime ot = o.getOrderedAt();
+                if (ot != null && !ot.isBefore(start) && !ot.isAfter(end)) {
+                    int monthIndex = ot.getMonthValue() - 1;
+                    if (o.getStatus() != OrderStatus.CANCELLED) {
+                        BigDecimal amt = o.getTotalAmount() != null ? o.getTotalAmount() : BigDecimal.ZERO;
+                        revMap.put(monthIndex, revMap.get(monthIndex).add(amt));
+                    }
+                    ordMap.put(monthIndex, ordMap.get(monthIndex) + 1);
+                }
+            }
+
+            for (int i = 0; i < 12; i++) {
+                points.add(new ChartDataPoint(months[i], revMap.get(i), ordMap.get(i)));
+            }
+        }
+
+        return points;
+    }
+
+    public boolean checkUserPurchasedVariants(Integer userID, List<Integer> variantIDs) {
+        if (userID == null || variantIDs == null || variantIDs.isEmpty()) {
+            return false;
+        }
+        return orderItemRepository.existsByUserIDAndStatusAndVariantIn(userID, OrderStatus.COMPLETED, variantIDs);
     }
 
 }

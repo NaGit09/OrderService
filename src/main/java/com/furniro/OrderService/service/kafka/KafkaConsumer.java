@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import com.furniro.OrderService.service.CartService;
 import com.furniro.OrderService.service.OrderService;
+import com.furniro.OrderService.service.PromoCodeService;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 public class KafkaConsumer {
     private final OrderService orderService;
     private final CartService cartService;
+    private final PromoCodeService promoCodeService;
 
     @KafkaListener(topics = "inventory.reservation-expired", groupId = "inventory")
     public void reservationExpired(Map<String, Object> message) {
@@ -68,5 +70,15 @@ public class KafkaConsumer {
             log.error("Failed to process auth.send.active event: {}", e.getMessage());
         }
 
+    }
+
+    @KafkaListener(topics = "promotion.events", groupId = "order-promotion-group")
+    public void onPromotionEvent(Map<String, Object> event) {
+        try {
+            log.info("Received promotion.events event: {}", event);
+            promoCodeService.syncPromoCode(event);
+        } catch (Exception e) {
+            log.error("Failed to process promotion event: {}", e.getMessage());
+        }
     }
 }
