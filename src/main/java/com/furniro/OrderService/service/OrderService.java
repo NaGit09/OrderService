@@ -204,9 +204,8 @@ public class OrderService {
     @SuppressWarnings("unchecked")
     public ResponseEntity<AType> capturePayPalOrder(Integer orderId) {
         // find order and get paypal orderid
-        Order order = paymentRepository.findById(orderId)
-                .orElseThrow(() -> new CustomException(OrderErrorCode.ORDER_NOT_EXIST))
-                .getOrder();
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new CustomException(OrderErrorCode.ORDER_NOT_EXIST));
 
         String paypalOrderId = order.getPayments().getPaypalOrderId();
         // Fetch current status from PayPal to make the operation idempotent
