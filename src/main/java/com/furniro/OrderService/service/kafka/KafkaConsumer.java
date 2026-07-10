@@ -58,7 +58,7 @@ public class KafkaConsumer {
     }
 
     @Transactional
-    @KafkaListener(topics = "auth.send.active", groupId = "message-service-group", containerFactory = "kafkaListenerContainerFactory")
+    @KafkaListener(topics = "auth.send.active", groupId = "order-service-group", containerFactory = "kafkaListenerContainerFactory")
     public void onUserCreated(Map<String, Object> event) {
         try {
 
